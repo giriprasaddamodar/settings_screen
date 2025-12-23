@@ -85,10 +85,14 @@ class ThemeModeScreen extends StatelessWidget {
           title: Text(entry.key),
 
           // Show check icon for selected item
+
+
           trailing: selected
               ? Icon(
             Icons.check,
-            color: Get.theme.colorScheme.primary,
+            color: Get.theme.colorScheme.primary == Colors.black
+                ? Colors.white
+                : Get.theme.colorScheme.primary,
           )
               : null,
 
@@ -117,7 +121,8 @@ class ThemeModeScreen extends StatelessWidget {
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: actionColor, width: 2),
-                foregroundColor: actionColor,
+                backgroundColor: actionColor,
+                foregroundColor: Colors.white,
               ),
               onPressed: () {
                 // Revert temp values to actual saved values

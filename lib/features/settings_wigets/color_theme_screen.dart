@@ -62,7 +62,7 @@ class ColorThemeScreen extends StatelessWidget {
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color:  c.tempColorKey.value == "black"
-                      ? Colors.black
+                      ? Colors.white
                       : selectedColor,
                 ),
               ),
@@ -85,8 +85,14 @@ class ColorThemeScreen extends StatelessWidget {
 
                     // Tick shows which color is currently selected
                     trailing: c.tempColorKey.value == entry.key
-                        ? Icon(Icons.check, color: entry.value)
+                        ? Icon(
+                      Icons.check,
+                      color: entry.key == "black"
+                          ? Colors.white   //  contrast
+                          : entry.value,
+                    )
                         : null,
+
 
                     // Updates only temp value (preview)
                     onTap: () => c.updateTempColor(entry.key),
@@ -123,7 +129,8 @@ class ColorThemeScreen extends StatelessWidget {
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: btnColor, width: 2),
-                foregroundColor: btnColor,
+                backgroundColor: btnColor,
+                foregroundColor: Colors.white,
               ),
               onPressed: () {
                 c.cancelPreview(); // restore original value

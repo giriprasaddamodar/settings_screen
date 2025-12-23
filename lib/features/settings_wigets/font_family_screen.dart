@@ -99,7 +99,9 @@ class _FontFamilyScreenState extends State<FontFamilyScreen> {
                     /// Check icon shows currently selected TEMP font
                     trailing: c.tempFontFamily.value == font
                         ? Icon(Icons.check,
-                        color: Get.theme.colorScheme.primary)
+                        color: Get.theme.colorScheme.primary == Colors.black
+                             ? Colors.white
+                             : Get.theme.colorScheme.primary)
                         : null,
 
                     /// Updates TEMP value only (not saved yet)
@@ -137,13 +139,16 @@ class _FontFamilyScreenState extends State<FontFamilyScreen> {
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: themeColor, width: 2),
-                foregroundColor: themeColor,
+                backgroundColor: themeColor,
+                foregroundColor: Colors.white,
               ),
               onPressed: () {
+                c.applyChanges();
                 c.cancelPreview(); // revert temp values
                 Get.back();
               },
-              child: const Text("Cancel"),
+              child: Text("Cancel",
+                style: _fontStyle(c.tempFontFamily.value),),
             ),
           ),
 
@@ -160,7 +165,10 @@ class _FontFamilyScreenState extends State<FontFamilyScreen> {
                c.applyChanges(); // save temp → real values
                 Get.back();
               },
-              child: const Text("Apply"),
+              child: Text("Apply",
+                style: _fontStyle(c.tempFontFamily.value),
+              ),
+
             ),
           ),
         ],
