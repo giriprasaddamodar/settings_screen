@@ -18,10 +18,14 @@ class ThemeManager {
     final bool isDark = brightness == Brightness.dark;
 
     // Allow black theme ONLY in dark mode
-    final bool isBlack = isDark && c.colorKey.value == "black";
+    final bool isBlack = c.colorKey.value == "black" && isDark;
+
+    final Color primaryColor = isBlack
+        ? Colors.black
+        : seedColor(c.colorKey.value); // blue, red, etc
 
     // Decide seed color
-    final Color seedColor =
+    final Color resolvedSeedColor =
     isBlack ? Colors.black : _seedFromKey(c.colorKey.value);
 
     // Base theme without colors/fonts
@@ -38,11 +42,27 @@ class ThemeManager {
     final TextTheme textTheme =
     _fixTextColors(fontTheme, isDark || isBlack);
 
-    // Choose color scheme
-    final ColorScheme scheme = isBlack
+    // -------------------------------------------------
+    // ✅ ONLY FIX: prevent black → pink in LIGHT MODE
+    // -------------------------------------------------
+    final ColorScheme scheme =
+    (c.colorKey.value == "black" && !isDark)
+        ? const ColorScheme.light(
+      primary: Colors.black,
+      secondary: Colors.black,
+      surface: Colors.white,
+      background: Colors.white,
+      error: Colors.red,
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
+      onSurface: Colors.black,
+      onBackground: Colors.black,
+      onError: Colors.white,
+    )
+        : isBlack
         ? _blackScheme()
         : ColorScheme.fromSeed(
-      seedColor: seedColor,
+      seedColor: resolvedSeedColor,
       brightness: brightness,
     );
 
@@ -57,7 +77,7 @@ class ThemeManager {
 
       // AppBar styling
       appBarTheme: AppBarTheme(
-        backgroundColor: seedColor,
+        backgroundColor: resolvedSeedColor,
         foregroundColor: Colors.white,
         centerTitle: true,
         elevation: 0,
@@ -69,7 +89,7 @@ class ThemeManager {
 
       // Bottom navigation bar
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: seedColor,
+        backgroundColor: resolvedSeedColor,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
       ),
@@ -141,7 +161,6 @@ class ThemeManager {
         return Colors.blue; // fallback safety
     }
   }
-
 
   // -------------------- TEXT & FONTS --------------------
 

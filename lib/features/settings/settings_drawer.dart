@@ -1,26 +1,18 @@
-// Settings drawer UI
-// ----------------------------------------------------
-// PURPOSE:
-// - Only displays settings options
-// - Does NOT directly apply theme / font / color changes
-// - Each option navigates to its own settings screen
-// ----------------------------------------------------
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
-// Individual setting screens
-import '../settings_wigets/theme_mode_screen.dart';
-import '../settings_wigets/color_theme_screen.dart';
-import '../settings_wigets/font_family_screen.dart';
-
-// Controller that holds app settings (GetX)
-import 'settings_controller.dart';
-
-// Extra packages for app info & sharing
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+
+import '../../widgets/settings/profile_tile.dart';
+import '../../widgets/settings/settings_header.dart';
+import '../../widgets/settings/settings_section.dart';
+import '../../widgets/settings/settings_tiles.dart';
+import 'settings_controller.dart';
+import '../settings_wigets/theme_mode_screen.dart';
+import '../settings_wigets/color_theme_screen.dart';
+import '../settings_wigets/font_family_screen.dart';
 
 class SettingsDrawer extends StatefulWidget {
   const SettingsDrawer({super.key});
@@ -30,40 +22,28 @@ class SettingsDrawer extends StatefulWidget {
 }
 
 class _SettingsDrawerState extends State<SettingsDrawer> {
-  // GetX controller gives access to stored settings
-  final SettingsController c = Get.find<SettingsController>();
-
-  // App version text (loaded asynchronously)
+  final SettingsController c = Get.find();
   String _version = "...";
 
   @override
   void initState() {
     super.initState();
-    _loadVersion(); // Load version once when drawer opens
+    _loadVersion();
   }
 
   // -------------------------
-  // LOAD APP VERSION
+  // LOAD VERSION
   // -------------------------
-  // WHY:
-  // - package_info_plus gives version & build number
-  // - shown in "About" section
   Future<void> _loadVersion() async {
-    try {
-      final info = await PackageInfo.fromPlatform();
-      setState(() {
-        _version = "${info.version} (${info.buildNumber})";
-      });
-    } catch (_) {
-      _version = "Unknown";
-    }
+    final info = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = "${info.version} (${info.buildNumber})";
+    });
   }
 
   // -------------------------
-  // OPEN EXTERNAL LINKS
+  // OPEN URL
   // -------------------------
-  // WHY:
-  // - used for Play Store, feedback email, etc.
   void _openUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
@@ -74,198 +54,11 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
   }
 
   // -------------------------
-  // SHARE APP
+  // SHARE
   // -------------------------
-  // WHY:
-  // - share_plus opens native share sheet
   void _shareApp() {
     Share.share(
       "Check this app:\nhttps://play.google.com/store/apps/details?id=com.example.app",
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      child: SafeArea(
-        child: Obx(() {
-          // WHY:
-          // - Wait until SharedPreferences are loaded
-          // - Prevents showing wrong default values
-          if (!c.ready.value) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return ListView(
-            padding: const EdgeInsets.all(12),
-            children: [
-              _header(context),
-
-              _section("Appearance"),
-
-              _navTile(
-                title: "Theme Mode",
-                subtitle: c.themeMode.value.name.capitalizeFirst!,
-                onTap: () => Get.to(() => ThemeModeScreen()),
-              ),
-
-              _navTile(
-                title: "Color Theme",
-                subtitle: c.colorKey.value.capitalizeFirst!,
-                onTap: () => Get.to(() => ColorThemeScreen()),
-              ),
-
-              _navTile(
-                title: "Font Family",
-                subtitle: c.fontFamily.value,
-                onTap: () => Get.to(() => FontFamilyScreen()),
-              ),
-
-              // WHY SwitchListTile:
-              // - inline toggle (no separate screen needed)
-              Obx(() => SwitchListTile(
-                title: const Text("Notifications"),
-                value: c.tempNotificationsEnabled.value, // ✅ TEMP value
-                onChanged: c.updateTempNotifications,     // ✅ TEMP updater
-              )),
-
-
-              _section("About"),
-
-              _simpleTile(
-                title: "About App",
-                onTap: () => _showTextDialog(
-                  "About",
-                  "Your app description goes here.",
-                ),
-              ),
-
-              ListTile(
-                title: const Text("Version"),
-                subtitle: Text(_version),
-              ),
-
-              _section("Support"),
-
-              _iconTile(
-                icon: Icons.share,
-                title: "Share App",
-                onTap: _shareApp,
-              ),
-
-              _iconTile(
-                icon: Icons.star,
-                title: "Rate Us",
-                onTap: () => _openUrl(
-                  "https://play.google.com/store/apps/details?id=com.example.app",
-                ),
-              ),
-
-              _iconTile(
-                icon: Icons.feedback_outlined,
-                title: "Feedback",
-                onTap: () => _openUrl("mailto:support@example.com"),
-              ),
-
-              _section("Legal"),
-
-              _simpleTile(
-                title: "Terms & Conditions",
-                onTap: () => _showTextDialog(
-                  "Terms & Conditions",
-                  "Add your terms here.",
-                ),
-              ),
-
-              _simpleTile(
-                title: "Disclaimer",
-                onTap: () => _showTextDialog(
-                  "Disclaimer",
-                  "Add your disclaimer here.",
-                ),
-              ),
-
-              _section("System"),
-
-              _iconTile(
-                icon: Icons.restore,
-                title: "Reset Settings",
-                onTap: _confirmReset,
-              ),
-
-              _iconTile(
-                icon: Icons.logout,
-                title: "Logout",
-                onTap: () {},
-              ),
-
-              const SizedBox(height: 24),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
-  // -------------------------
-  // REUSABLE UI HELPERS
-  // -------------------------
-
-  Widget _header(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Text(
-        "Settings",
-        style: Theme.of(context)
-            .textTheme
-            .headlineSmall
-            ?.copyWith(fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _section(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-
-  Widget _navTile({
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
-    );
-  }
-
-  Widget _simpleTile({
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      title: Text(title),
-      onTap: onTap,
-    );
-  }
-
-  Widget _iconTile({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      onTap: onTap,
     );
   }
 
@@ -286,7 +79,7 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              c.reset(); // Controller resets SharedPreferences
+              c.reset(); // clears SharedPreferences
             },
             child: const Text("Reset"),
           ),
@@ -310,6 +103,167 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
             child: const Text("Close"),
           ),
         ],
+      ),
+    );
+  }
+
+  // -------------------------
+  // LOGOUT
+  // -------------------------
+  void _logout() {
+    // Example:
+    // authController.logout();
+    Get.snackbar("Logout", "User logged out");
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: SafeArea(
+        child: Obx(() {
+          if (!c.ready.value) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              const SettingsHeader(),
+
+              // =========================
+              // PROFILE
+              // =========================
+              ProfileTile(
+                name: "John",
+                subtitle: "View profile",
+                themeColor: Theme.of(context).colorScheme.primary,
+                onTap: () {},
+              ),
+
+              const Divider(),
+
+              // =========================
+              // APPEARANCE
+              // =========================
+              const SettingsSection("Appearance"),
+
+              NavTile(
+                title: "Theme Mode",
+                subtitle: c.themeMode.value.name.capitalizeFirst!,
+                onTap: () => Get.to(() => ThemeModeScreen()),
+              ),
+
+              NavTile(
+                title: "Color Theme",
+                subtitle: c.colorKey.value.capitalizeFirst!,
+                onTap: () => Get.to(() => ColorThemeScreen()),
+              ),
+
+              NavTile(
+                title: "Font Family",
+                subtitle: c.fontFamily.value,
+                onTap: () => Get.to(() => FontFamilyScreen()),
+              ),
+
+              Obx(() => SwitchListTile(
+                title: const Text("Notifications"),
+                value: c.tempNotificationsEnabled.value,
+                onChanged: c.updateTempNotifications,
+              )),
+
+              // =========================
+              // ABOUT
+              // =========================
+              const SettingsSection("About"),
+
+              SimpleTile(
+                title: "About Us",
+                onTap: () => _showTextDialog(
+                  "About",
+                  "Your app description goes here.",
+                ),
+              ),
+
+              ListTile(
+                title: const Text("Version"),
+                subtitle: Text(_version),
+              ),
+
+              // =========================
+              // SUPPORT
+              // =========================
+              const SettingsSection("Support"),
+
+              IconTile(
+                icon: Icons.share,
+                title: "Share App",
+                onTap: _shareApp,
+              ),
+
+              IconTile(
+                icon: Icons.feedback_outlined,
+                title: "Feedback",
+                onTap: () => _openUrl("mailto:support@example.com"),
+              ),
+
+              IconTile(
+                icon: Icons.star,
+                title: "Rate Us",
+                onTap: () => _openUrl(
+                  "https://play.google.com/store/apps/details?id=com.example.app",
+                ),
+              ),
+
+              // =========================
+              // LEGAL
+              // =========================
+              const SettingsSection("Legal"),
+
+              SimpleTile(
+                title: "Privacy Policy",
+                onTap: () => _showTextDialog(
+                  "Privacy Policy",
+                  "Add your privacy policy here.",
+                ),
+              ),
+
+              SimpleTile(
+                title: "Terms & Conditions",
+                onTap: () => _showTextDialog(
+                  "Terms & Conditions",
+                  "Add your terms & conditions here.",
+                ),
+              ),
+
+              SimpleTile(
+                title: "Disclaimer",
+                onTap: () => _showTextDialog(
+                  "Disclaimer",
+                  "Add your disclaimer here.",
+                ),
+              ),
+
+              // =========================
+              // SYSTEM
+              // =========================
+              const SettingsSection("System"),
+
+              IconTile(
+                icon: Icons.restore,
+                title: "Reset Settings",
+                onTap: _confirmReset,
+              ),
+
+              IconTile(
+                icon: Icons.logout,
+                title: "Logout",
+                onTap: _logout,
+              ),
+
+              const SizedBox(height: 24),
+            ],
+          );
+        }),
       ),
     );
   }
