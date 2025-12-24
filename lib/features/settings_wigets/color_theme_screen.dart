@@ -2,13 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme_manager.dart';
+import '../../widgets/preview_appbar.dart';
 import '../settings/settings_controller.dart';
 
-class ColorThemeScreen extends StatelessWidget {
-  ColorThemeScreen({super.key});
+class ColorThemeScreen extends StatefulWidget {
+  const ColorThemeScreen({super.key});
 
-  // SettingsController holds actual + temp (preview) values
-  final SettingsController c = Get.find<SettingsController>();
+  @override
+  State<ColorThemeScreen> createState() => _ColorThemeScreenState();
+}
+
+class _ColorThemeScreenState extends State<ColorThemeScreen> {
+  final SettingsController c = Get.find();
+
+  @override
+  void initState() {
+    super.initState();
+
+    //  SAFE: runs once, outside build
+    c.startEditing();
+  }
+
 
   // Centralized list of selectable colors (key used for storage)
   final Map<String, Color> colors = {
@@ -26,18 +40,15 @@ class ColorThemeScreen extends StatelessWidget {
   };
 
   @override
+  @override
   Widget build(BuildContext context) {
-    // Load current saved settings into temp variables for preview
-    c.startEditing();
+    return Obx(() {
+      final Color previewColor = _currentColor;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Color Theme")),
+      return Scaffold(
+        appBar: const PreviewAppBar(title: "Color Theme"),
 
-      // Obx rebuilds UI automatically when tempColorKey changes
-      body: Obx(() {
-        final Color selectedColor = _currentColor;
-
-        return Column(
+        body: Column(
           children: [
             const SizedBox(height: 10),
 
@@ -45,25 +56,21 @@ class ColorThemeScreen extends StatelessWidget {
             Container(
               margin: const EdgeInsets.all(12),
               padding: const EdgeInsets.all(20),
-
-              // Light background preview for colors, full black for black theme
               decoration: BoxDecoration(
                 color: c.tempColorKey.value == "black"
                     ? Colors.black
-                    : selectedColor.withOpacity(0.2),
+                    : previewColor.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-
-              // Shows live preview text style
               child: Text(
                 "Color Preview",
                 style: TextStyle(
                   fontFamily: c.tempFontFamily.value,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color:  c.tempColorKey.value == "black"
+                  color: c.tempColorKey.value == "black"
                       ? Colors.white
-                      : selectedColor,
+                      : previewColor,
                 ),
               ),
             ),
@@ -78,34 +85,26 @@ class ColorThemeScreen extends StatelessWidget {
                     leading: CircleAvatar(
                       backgroundColor: entry.value,
                     ),
-
-                    // Capitalize label for UI clarity
                     title: Text(entry.key.capitalizeFirst!),
-
-
-                    // Tick shows which color is currently selected
                     trailing: c.tempColorKey.value == entry.key
                         ? Icon(
                       Icons.check,
                       color: entry.key == "black"
-                          ? Colors.white   //  contrast
+                          ? Colors.white
                           : entry.value,
                     )
                         : null,
-
-
-                    // Updates only temp value (preview)
                     onTap: () => c.updateTempColor(entry.key),
                   );
                 }).toList(),
               ),
             ),
 
-            _actionButtons(),
+            _actionButtons(previewColor),
           ],
-        );
-      }),
-    );
+        ),
+      );
+    });
   }
 
   // ================= COMMON COLOR GETTER =================
@@ -117,23 +116,20 @@ class ColorThemeScreen extends StatelessWidget {
   }
 
   // ================= ACTION BUTTONS =================
-  Widget _actionButtons() {
-    final Color btnColor = _currentColor;
-
+  Widget _actionButtons(Color previewColor) {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          // Cancel → revert temp changes
           Expanded(
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: btnColor, width: 2),
-                backgroundColor: btnColor,
+                side: BorderSide(color: previewColor, width: 2),
+                backgroundColor: previewColor,
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
-                c.cancelPreview(); // restore original value
+                c.cancelPreview();
                 Get.back();
               },
               child: const Text("Cancel"),
@@ -142,15 +138,14 @@ class ColorThemeScreen extends StatelessWidget {
 
           const SizedBox(width: 12),
 
-          // Apply → save temp value permanently
           Expanded(
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: btnColor,
+                backgroundColor: previewColor,
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
-                c.applyChanges(); // commit changes
+                c.applyChanges();
                 Get.back();
               },
               child: const Text("Apply"),
@@ -160,4 +155,5 @@ class ColorThemeScreen extends StatelessWidget {
       ),
     );
   }
+
 }

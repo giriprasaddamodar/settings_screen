@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:settings_screen/widgets/preview_appbar.dart';
 
 import '../../core/theme_manager.dart';
 import '../settings/settings_controller.dart';
 
-class ThemeModeScreen extends StatelessWidget {
-  ThemeModeScreen({super.key});
+class ThemeModeScreen extends StatefulWidget {
+  const ThemeModeScreen({super.key});
 
-  // Single source of truth for settings
+  @override
+  State<ThemeModeScreen> createState() => _ThemeModeScreenState();
+}
+
+class _ThemeModeScreenState extends State<ThemeModeScreen> {
   final SettingsController c = Get.find<SettingsController>();
 
-  // Display name → actual ThemeMode
+  /// Display name → actual ThemeMode
   final Map<String, ThemeMode> modes = const {
     "System": ThemeMode.system,
     "Light": ThemeMode.light,
@@ -18,115 +23,104 @@ class ThemeModeScreen extends StatelessWidget {
   };
 
   @override
-  Widget build(BuildContext context) {
-    // Load real values into temporary preview values
-    // Called once when screen opens
+  void initState() {
+    super.initState();
+    // ✅ Load real values into temp values ONCE
     c.startEditing();
+  }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Theme Mode")),
+  /// 🔹 Preview color based on COLOR THEME (same as AppBar)
+  Color get _previewColor {
+    return c.tempColorKey.value == "black"
+        ? Colors.black
+        : ThemeManager.seedColor(c.tempColorKey.value);
+  }
 
-      // Obx rebuilds UI whenever tempThemeMode changes
-      body: Obx(() {
-        final bool isDarkPreview =
-            c.tempThemeMode.value == ThemeMode.dark;
+  /// 🔹 Text color for contrast (white works for all your themes)
+  Color get _previewTextColor => Colors.white;
 
-        return Column(
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final bool isDarkPreview =
+          c.tempThemeMode.value == ThemeMode.dark;
+
+      final Color screenBg =
+      isDarkPreview ? Colors.black : Colors.white;
+
+      final Color screenText =
+      isDarkPreview ? Colors.white : Colors.black;
+
+      return Scaffold(
+        backgroundColor: screenBg,
+
+        ///  AppBar already reacts to tempColorKey internally
+        appBar: const PreviewAppBar(title: "Theme Mode"),
+
+        body: Column(
           children: [
+            const SizedBox(height: 12),
 
-            // ---------- PREVIEW ----------
-            _previewBox(isDarkPreview),
+            // // ================= PREVIEW TEXT =================
+            // Padding(
+            //   padding: const EdgeInsets.all(20),
+            //   child: Text(
+            //     "Theme preview text",
+            //     style: TextStyle(
+            //       fontSize: 18,
+            //       color: screenText,
+            //       fontFamily: c.tempFontFamily.value,
+            //     ),
+            //   ),
+            // ),
+            //
+            // const Divider(),
 
-            const Divider(),
+            // ================= THEME MODE OPTIONS =================
+            Expanded(
+              child: ListView(
+                children: modes.entries.map((e) {
+                  return RadioListTile<ThemeMode>(
+                    title: Text(
+                      e.key,
+                      style: TextStyle(color: screenText),
+                    ),
+                    value: e.value,
+                    groupValue: c.tempThemeMode.value,
+                    onChanged: (v) =>
+                    c.tempThemeMode.value = v!,
+                  );
+                }).toList(),
+              ),
+            ),
 
-            // ---------- OPTIONS ----------
-            Expanded(child: _themeList()),
-
-            // ---------- ACTION BUTTONS ----------
+            // ================= ACTION BUTTONS =================
             _actionButtons(),
           ],
-        );
-      }),
-    );
-  }
-
-  // ================= PREVIEW BOX =================
-  Widget _previewBox(bool isDark) {
-    return Container(
-      margin: const EdgeInsets.all(12),
-      padding: const EdgeInsets.all(20),
-
-      // Background switches based on selected preview mode
-      decoration: BoxDecoration(
-        color: isDark ? Colors.black : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-
-      // Text color & font preview
-      child: Text(
-        "Theme preview text",
-        style: TextStyle(
-          fontSize: 18,
-          color: isDark ? Colors.white : Colors.black,
-          fontFamily: c.tempFontFamily.value,
         ),
-      ),
-    );
-  }
-
-  // ================= THEME OPTIONS =================
-  Widget _themeList() {
-    return ListView(
-      children: modes.entries.map((entry) {
-        final bool selected =
-            c.tempThemeMode.value == entry.value;
-
-        return ListTile(
-          title: Text(entry.key),
-
-          // Show check icon for selected item
-
-
-          trailing: selected
-              ? Icon(
-            Icons.check,
-            color: Get.theme.colorScheme.primary == Colors.black
-                ? Colors.white
-                : Get.theme.colorScheme.primary,
-          )
-              : null,
-
-          // Update temp value only (no real change yet)
-          onTap: () => c.updateTempTheme(entry.value),
-        );
-      }).toList(),
-    );
+      );
+    });
   }
 
   // ================= ACTION BUTTONS =================
   Widget _actionButtons() {
-    // Use pure color (Material2 style – no fading)
-    final Color actionColor =
-    c.tempColorKey.value == "black"
-        ? Colors.black
-        : ThemeManager.seedColor(c.tempColorKey.value);
+    final Color bgColor = _previewColor;
+    final Color fgColor = _previewTextColor;
 
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-
-          // -------- CANCEL --------
+          /// CANCEL → discard preview changes
           Expanded(
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: actionColor, width: 2),
-                backgroundColor: actionColor,
-                foregroundColor: Colors.white,
+                backgroundColor: bgColor,
+                foregroundColor: fgColor,
+                side: BorderSide(color: bgColor, width: 2),
               ),
               onPressed: () {
-                // Revert temp values to actual saved values
-                c.cancelPreview();
+                c.cancelPreview(); // restore original values
                 Get.back();
               },
               child: const Text("Cancel"),
@@ -135,16 +129,15 @@ class ThemeModeScreen extends StatelessWidget {
 
           const SizedBox(width: 12),
 
-          // -------- APPLY --------
+          /// APPLY → commit preview changes
           Expanded(
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: actionColor,
-                foregroundColor: Colors.white,
+                backgroundColor: bgColor,
+                foregroundColor: fgColor,
               ),
               onPressed: () {
-                // Commit temp values to real settings
-                c.applyChanges();
+                c.applyChanges(); // save temp → real
                 Get.back();
               },
               child: const Text("Apply"),

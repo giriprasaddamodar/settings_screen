@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:settings_screen/widgets/preview_appbar.dart';
 
 import '../../core/theme_manager.dart';
 import '../settings/settings_controller.dart';
@@ -58,15 +59,19 @@ class _FontFamilyScreenState extends State<FontFamilyScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Font Family")),
+    return Obx(() {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            "Font Family",
+            style: _fontStyle(c.tempFontFamily.value),
+          ),
+        ),
 
-      /// Obx rebuilds UI whenever tempFontFamily changes
-      body: Obx(() {
-        return Column(
+        body: Column(
           children: [
-
             const SizedBox(height: 12),
 
             /// 🔹 PREVIEW AREA
@@ -114,9 +119,9 @@ class _FontFamilyScreenState extends State<FontFamilyScreen> {
             /// 🔹 ACTION BUTTONS
             _actionButtons(),
           ],
+        ),
         );
-      }),
-    );
+      });
   }
 
   /// Cancel / Apply buttons

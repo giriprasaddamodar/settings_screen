@@ -42,6 +42,7 @@ class ThemeManager {
     final TextTheme textTheme =
     _fixTextColors(fontTheme, isDark || isBlack);
 
+
     // -------------------------------------------------
     // ✅ ONLY FIX: prevent black → pink in LIGHT MODE
     // -------------------------------------------------
@@ -181,6 +182,20 @@ class ThemeManager {
         return GoogleFonts.robotoTextTheme(base);
     }
   }
+
+  // Returns color for previews (AppBar / preview box)
+  static Color previewColor(
+      String colorKey, {
+        bool dark = false,
+      }) {
+    // Allow pure black only in dark mode
+    if (colorKey == "black" && dark) {
+      return Colors.black;
+    }
+
+    return seedColor(colorKey);
+  }
+
 
   /// Forces all text colors to white (dark) or black (light)
   static TextTheme _fixTextColors(TextTheme base, bool whiteText) {
